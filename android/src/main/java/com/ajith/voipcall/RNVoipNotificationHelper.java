@@ -5,14 +5,26 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.app.Service;
 import android.content.Intent;
 
+import androidx.annotation.ColorRes;
+import androidx.annotation.Nullable;
+import androidx.annotation.StringRes;
 import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
+
 import android.content.Context;
+import android.graphics.Color;
 import android.media.AudioAttributes;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
+import android.os.IBinder;
+import android.text.Spannable;
+import android.text.SpannableString;
+import android.text.style.BackgroundColorSpan;
+import android.text.style.ForegroundColorSpan;
 import android.util.Log;
 
 import com.facebook.react.bridge.ReadableMap;
@@ -61,9 +73,9 @@ public class RNVoipNotificationHelper {
 
         Uri sounduri = Uri.parse("android.resource://" + context.getPackageName() + "/"+ R.raw.nosound);
 
-        Notification notification = new NotificationCompat.Builder(context,callChannel)
+        NotificationCompat.Builder notification = new NotificationCompat.Builder(context,callChannel)
                 .setAutoCancel(true)
-                .setDefaults(0)
+                .setDefaults(Notification.DEFAULT_VIBRATE)
                 .setCategory(Notification.CATEGORY_CALL)
                 .setOngoing(true)
                 .setTimeoutAfter(json.getInt("duration"))
@@ -74,14 +86,19 @@ public class RNVoipNotificationHelper {
                 .setPriority(Notification.PRIORITY_MAX)
                 .setContentTitle(json.getString("notificationTitle"))
                 .setSound(sounduri)
-                .setContentText(json.getString("notificationBody"))
-                .addAction(0, json.getString("answerActionTitle"), getPendingIntent(notificationID, "callAnswer",json))
-                .addAction(0, json.getString("declineActionTitle"), callDismissIntent)
-                .build();
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setContentText(json.getString("notificationBody"));
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    notification.addAction(new NotificationCompat.Action.Builder(0,getActionText(json.getString("answerActionTitle"),R.color.green), getPendingIntent(notificationID, "callAnswer",json)).build());
+                } else {
+                    notification.addAction(0,getActionText(json.getString("answerActionTitle"),R.color.green), getPendingIntent(notificationID, "callAnswer",json));
+                }
+                notification.addAction(0,getActionText(json.getString("declineActionTitle"),R.color.red), callDismissIntent);
 
         NotificationManager notificationManager = notificationManager();
         createCallNotificationChannel(notificationManager, json);
-        notificationManager.notify(notificationID,notification);
+        notificationManager.notify(notificationID,notification.build());
+
     }
 
 
@@ -91,6 +108,7 @@ public class RNVoipNotificationHelper {
             Uri sounduri = Uri.parse("android.resource://" + context.getPackageName() + "/"+ R.raw.nosound);
             NotificationChannel channel = new NotificationChannel(callChannel, json.getString("channel_name"), NotificationManager.IMPORTANCE_HIGH);
             channel.setDescription("Call Notifications");
+
             channel.setSound(sounduri ,
                     new AudioAttributes.Builder().setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                             .setUsage(AudioAttributes.USAGE_UNKNOWN).build());
@@ -104,7 +122,10 @@ public class RNVoipNotificationHelper {
     public PendingIntent getPendingIntent(int notificationID , String type, ReadableMap json){
         Class intentClass = getMainActivityClass();
         Intent intent = new Intent(context, intentClass);
-        intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+//        intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+//        intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+//        intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+
         intent.putExtra("notificationId",notificationID);
         intent.putExtra("callerId", json.getString("callerId"));
         intent.putExtra("action", type);
@@ -173,6 +194,14 @@ public class RNVoipNotificationHelper {
     private NotificationManager notificationManager() {
         return (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
     }
+    private Spannable getActionText(String text ,int bckColor) {
+        Spannable spannable = new SpannableString(text);
+        int colorId=0;
+        if (Build.VERSION.SDK_INT >= 23) colorId= context.getColor(bckColor);
+        else colorId=context.getResources().getColor(bckColor);
+        spannable.setSpan(new ForegroundColorSpan(colorId), 0, spannable.length(), 0);
 
+        return spannable;
+    }
 
 }
