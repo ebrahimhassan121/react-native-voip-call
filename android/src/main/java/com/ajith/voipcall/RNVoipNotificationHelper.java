@@ -81,7 +81,7 @@ public class RNVoipNotificationHelper {
                 .setTimeoutAfter(json.getInt("duration"))
                 .setOnlyAlertOnce(true)
                 .setFullScreenIntent(null , true)
-                .setContentIntent(getPendingIntent(notificationID, "contentTap", json))
+                // .setContentIntent(getPendingIntent(notificationID, "contentTap", json))
                 .setSmallIcon(R.drawable.ic_call_black_24dp)
                 .setPriority(Notification.PRIORITY_MAX)
                 .setContentTitle(json.getString("notificationTitle"))
