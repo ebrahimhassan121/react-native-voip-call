@@ -79,6 +79,11 @@ public class RNVoipSendData {
                     params.putString("callerId", intent.getStringExtra("callerId"));
                     sendEvent(mReactContext,"RNVoipCallMissedCallTap", params);
                     break;
+                case "callTimeOut":
+                    params.putString("callerId", intent.getStringExtra("callerId"));
+                    sendEvent(mReactContext,"RNVoipCallTimeout", params);
+
+
                 default:
                     break;
             }
